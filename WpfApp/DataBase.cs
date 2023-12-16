@@ -13,7 +13,6 @@ namespace WpfApp
     {
         MySqlConnection connect = new MySqlConnection("Server=localhost;Database=machine_monitoring;Uid=root;pwd=root;");
         List<Machine> _machine = new List<Machine>();
-        //Machine[] _machine = new Machine[3].Select(m => new Machine()).ToArray();
         public void OpenConnection() => connect.Open();
         public void CloseConnection()
         {
@@ -24,7 +23,6 @@ namespace WpfApp
         {
             try
             {
-                int count = 0;
 
                 string response = "SELECT * FROM machine_monitoring.machine";
                 MySqlCommand cmd = new MySqlCommand(response, connect);
@@ -33,9 +31,6 @@ namespace WpfApp
                     while (reader.Read())
                     {
                         _machine.Add(new Machine(id: Convert.ToInt32(reader["id_machine"]), name: reader["name"].ToString(), type_cnc: reader["type_cnc"].ToString()));
-                        //_machine[count].name = reader["name"].ToString();
-                        //_machine[count].id = Convert.ToInt32(reader["id_machine"]);
-                        //count++;
                     }
                 }
             }
@@ -48,7 +43,6 @@ namespace WpfApp
 
         public string SendLog(ObservableCollection<Logs> logs)
         {
-            int number = 0;
             if (logs.Count == 0) return "Логи пустые. Нечего отправлять в бд";
             else
             {
@@ -59,7 +53,7 @@ namespace WpfApp
                         string response = $"INSERT INTO logger(date, type_error, msg, id_machine) VALUES (N'{log.Date}',N'{log.TypeError}',N'{log.Msg}', N'{log.Id_machine}')";
 
                         MySqlCommand cmd = new MySqlCommand(response, connect);
-                        number = cmd.ExecuteNonQuery();
+                         cmd.ExecuteNonQuery();
                     }
                     
                 }
