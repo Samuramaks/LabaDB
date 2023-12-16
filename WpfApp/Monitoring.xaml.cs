@@ -151,6 +151,7 @@ namespace WpfApp
 
             UpdateGrid(msg: "Остановка", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Stop);
             UpdateTextBoxAverage(Math.Round(arrTemperature.Average(), 2));
+            UpdateTextBoxReady("Простаивает");
 
             WpfPlot1.Plot.AddScatter(arrTime.ToArray(), arrTemperature.ToArray());
             WpfPlot1.Refresh();
@@ -177,11 +178,7 @@ namespace WpfApp
                 case TemplateLogs.Message:
                     logs.Add(new Logs() { Date = date, Name = nameMachine, TypeError = typeError, Msg = msg, Id_machine = _machine[nameMachineBox.SelectedIndex].id });
                     break;
-            }
-            
-           
-
-            
+            }    
         }
 
         public void Simulation()
@@ -258,9 +255,9 @@ namespace WpfApp
 
         private void UpdateTextBoxTemperature()
         {
-            textBoxCNC.Text = $"Температура СЧПУ: {temperatureCnc}";
-            textBoxMainMotion.Text = $"Температура привода: {temperatureMainMotion}";
-            textBoxSpindle.Text = $"Температура шпинделя: {temperatureSpindle}";
+            textBoxCNC.Text = $"Темп СЧПУ: {temperatureCnc}";
+            textBoxMainMotion.Text = $"Темп привода: {temperatureMainMotion}";
+            textBoxSpindle.Text = $"Темп шпинделя: {temperatureSpindle}";
         }
 
         private void UpdateTextBoxReady(string text)
@@ -271,7 +268,7 @@ namespace WpfApp
 
         private void UpdateTextBoxAverage(double averageTemperature)
         {
-            textBoxAverageMainMotion.Text = $"Средняя температура: {averageTemperature}";
+            textBoxAverageMainMotion.Text = $"Ср. температура: {averageTemperature}";
         }
 
 
