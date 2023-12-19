@@ -11,14 +11,13 @@
         
         <TextBlock HorizontalAlignment="Left" Margin="93,154,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Height="178" Width="554">
             <Run FontSize="20"> Данную работу выполнили студенты АДМ-23-03:</Run>
+            <Run FontSize="20"> Перелыгин А.А</Run> 
             <LineBreak/>
             <Run FontSize="20"> Демин М.Д</Run>
             <LineBreak/>
             <Run FontSize="20"> Глянцев М.Д</Run>
             <LineBreak/>
             <Run FontSize="20"> Гомонок М.С</Run>
-            <LineBreak/>
-            <Run FontSize="20"> Перелыгин А.А</Run> 
             <LineBreak/>
             <Run FontSize="20"> Фатихова А.Д</Run>
         </TextBlock>
