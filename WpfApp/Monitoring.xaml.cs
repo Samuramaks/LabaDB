@@ -129,6 +129,9 @@ namespace WpfApp
 
             WpfPlot1.Reset();
 
+            arrTime.Add(time);
+            arrTemperature.Add(temperatureMainMotion);
+
             UpdateGrid(msg: "Запуск", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(),date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Start);
             
             await Task.Delay(5000);
@@ -149,7 +152,7 @@ namespace WpfApp
             temperatureMainMotion = 5.0;
             temperatureSpindle = 3.0;
 
-            UpdateGrid(msg: "Остановка", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Stop);
+            UpdateGrid(msg: "Остановка", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(), date: DateTime.Now.ToString(), template: TemplateLogs.Stop);
             UpdateTextBoxAverage(Math.Round(arrTemperature.Average(), 2));
             UpdateTextBoxReady("Простаивает");
 

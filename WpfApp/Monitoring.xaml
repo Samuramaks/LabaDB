@@ -26,6 +26,7 @@
             <RowDefinition Height="0.65*"/>
             <RowDefinition Height="0.3*"/>
         </Grid.RowDefinitions>
+        
         <Button Content="Главная" HorizontalAlignment="Left" Margin="12,10,0,0" Grid.Row="2" VerticalAlignment="Top" Width="120"/>
         <Button Content="Мониторинг" HorizontalAlignment="Left" Margin="12,35,0,0" Grid.Row="2" VerticalAlignment="Top" Width="120" Background="AliceBlue"/>
         <Button Content="Анализ" HorizontalAlignment="Left" Margin="12,65,0,0" Grid.Row="2" VerticalAlignment="Top" Width="120"/>
