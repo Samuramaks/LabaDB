@@ -1,0 +1,361 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Timers;
+using Timer = System.Timers.Timer;
+using System.Collections.ObjectModel;
+
+namespace WinFormsApp
+{
+    public partial class Monitoring : Form
+    {
+        private DataBase _data;
+        private Timer checkComponentTimer;
+        private DataTable dt;
+
+        private List<Machine> _machine;
+        private ObservableCollection<Logs> logs;
+        private List<double> arrTemperature;
+        private List<double> arrTime;
+
+
+        private double maxTemperature = 40.0;
+        private double temperatureCnc;
+        private double temperatureMainMotion;
+        private double temperatureSpindle;
+        private double time = 0;
+        private bool flag = false;
+
+        public Monitoring()
+        {
+            InitializeComponent();
+
+            _data = new DataBase();
+            _machine = new List<Machine>();
+            logs = new ObservableCollection<Logs>();
+            arrTemperature = new List<double>();
+            arrTime = new List<double>();
+
+
+            _data.OpenConnection();
+            _machine = _data.ReadValue();
+            _data.CloseConnection();
+
+            
+
+            //nameMachineBox
+            dateBox.Text = DateTime.Now.ToShortDateString();
+            //logsGrid.DataSource = logs;
+
+            
+
+            checkComponentTimer = new Timer(10000);  // Интервал в миллисекундах (в данном случае, 10 секунд)
+            checkComponentTimer.Elapsed += OnCheckComponentTimerTick!;
+            checkComponentTimer.AutoReset = true;
+
+
+            temperatureCnc = 2.0;
+            temperatureMainMotion = 5.0;
+            temperatureSpindle = 3.0;
+
+            FillComboBox();
+            UpdateTextBoxAverage(0);
+            UpdateTextBoxReady("Не готов");
+            UpdateTextBoxTemperature();
+        }
+
+        public void FillComboBox()
+        {
+            nameMachineBox.DataSource = _machine;
+        }
+
+        private void nameMachineBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            typeMachine.Text = _machine[nameMachineBox.SelectedIndex].type_cnc;
+
+            UpdateImage(_machine[nameMachineBox.SelectedIndex].name);
+            UpdateTextBoxAverage(0);
+            UpdateTextBoxReady("Не готов");
+            UpdateTextBoxTemperature();
+
+        }
+
+        public void UpdateImage(string imageName)
+        {
+            string src;
+
+            switch (imageName)
+            {
+                case "ST-10LF":
+                    src = $@"..\..\..\Image\{imageName}.png";
+                    imageMachine.ImageLocation = src;
+                    break;
+                case "DMTG CKE":
+                    src = $@"..\..\..\Image\{imageName}.png";
+                    imageMachine.ImageLocation = src;
+                    break;
+                case "TL-30LLF":
+                    src = $@"..\..\..\Image\{imageName}.png";
+                    imageMachine.ImageLocation = src;
+                    break;
+
+            }
+        }
+
+        private async void btnPlay_Click(object sender, EventArgs e)
+        {
+            nameMachineBox.Enabled = false;
+            btnPlay.Enabled = false;
+            btnStop.Enabled = true;
+            flag = true;
+            checkComponentTimer.Enabled = true;
+
+            WpfPlot1.Reset();
+
+            arrTime.Add(time);
+            arrTemperature.Add(temperatureMainMotion);
+
+            UpdateGrid(msg: "Запуск", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Start);
+
+            await Task.Delay(5000);
+            await Task.Run(() => Simulation());
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            nameMachineBox.Enabled = true;
+            btnStop.Enabled = false;
+            btnPlay.Enabled = true;
+            flag = false;
+            checkComponentTimer.Enabled = false;
+
+            temperatureCnc = 2.0;
+            temperatureMainMotion = 5.0;
+            temperatureSpindle = 3.0;
+
+            UpdateGrid(msg: "Остановка", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Stop);
+            UpdateTextBoxAverage(Math.Round(arrTemperature.Average(), 2));
+            UpdateTextBoxReady("Простаивает");
+
+            WpfPlot1.Plot.AddScatter(arrTime.ToArray(), arrTemperature.ToArray());
+            WpfPlot1.Refresh();
+
+
+            arrTemperature.Clear();
+            arrTime.Clear();
+            time = 0;
+        }
+
+        public void UpdateGrid(string msg, string typeError, string nameMachine, string date, TemplateLogs template)
+        {
+            
+
+            switch (template)
+            {
+                case TemplateLogs.Start:
+                    logs.Add(new Logs() {Date = date, Name = nameMachine, TypeError = typeError, Msg = msg, Id_machine = _machine[nameMachineBox.SelectedIndex].id });
+                    break;
+                case TemplateLogs.Stop:
+                    logs.Add(new Logs() { Date = date, Name = nameMachine, TypeError = typeError, Msg = msg, Id_machine = _machine[nameMachineBox.SelectedIndex].id });
+                    break;
+                case TemplateLogs.Message:
+                    logs.Add(new Logs() { Date = date, Name = nameMachine, TypeError = typeError, Msg = msg, Id_machine = _machine[nameMachineBox.SelectedIndex].id });
+                    break;
+            }
+            UpdateLogsGrid();
+        }
+
+        public void UpdateLogsGrid()
+        {
+            dt = new DataTable();
+            dt.Columns.Add("Datetime");
+            dt.Columns.Add("MachineName");
+            dt.Columns.Add("Typerror");
+            dt.Columns.Add("Message");
+            dt.Columns.Add("IdMachine");
+
+            foreach (Logs l in logs)
+            {
+                dt.Rows.Add(l.Date, l.Name, l.TypeError, l.Msg, l.Id_machine);
+            }
+            logsGrid.DataSource = dt;
+
+        }
+
+        public void Simulation()
+        {
+            Invoke(() => UpdateTextBoxReady("Готовы"));
+            Random rnd = new Random();
+
+
+            while (flag)
+            {
+                temperatureCnc = SimulateComponentTemperatureChange("СЧПУ", temperatureCnc);
+                temperatureMainMotion = SimulateComponentTemperatureChange("Привод главного движения", temperatureMainMotion);
+                temperatureSpindle = SimulateComponentTemperatureChange("Шпиндель", temperatureSpindle);
+
+                if (temperatureMainMotion > maxTemperature || temperatureCnc > maxTemperature || temperatureSpindle > maxTemperature)
+                {
+                   Invoke(() => UpdateGrid(msg: "Критическая температура. Выключите машину", nameMachine: _machine[nameMachineBox.SelectedIndex].name, typeError: Error.Critical.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Message));
+
+                    break;
+                }
+                Thread.Sleep(5000);
+            }
+
+
+        }
+
+
+        public double SimulateComponentTemperatureChange(string componentName, double temperature)
+        {
+            double smoothingFactor = 0.1;
+            double randomChange = new Random().NextDouble() * (15 - 10) * 10;
+            temperature = smoothingFactor * randomChange + (1 - smoothingFactor) * temperature;
+
+            // Обработка критической температуры для каждого компонента
+            if (temperature > GetCriticalTemperatureThreshold(componentName))
+            {
+                Invoke(() => UpdateGrid(msg: "Критическая температура", nameMachine: componentName, typeError: Error.Critical.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Message));
+
+            }
+            return Math.Round(temperature, 2);
+        }
+
+        public double GetCriticalTemperatureThreshold(string componentName)
+        {
+            Invoke(() => UpdateGrid(msg: "Температура в норме", nameMachine: componentName, typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Message));
+
+            switch (componentName)
+            {
+                case "СЧПУ":
+                    return 30.0;
+                case "Привод главного движения":
+                    return 35.0;
+                case "Шпиндель":
+                    return 25.0;
+                default:
+                    throw new ArgumentException("Invalid component name");
+            }
+        }
+
+        private void OnCheckComponentTimerTick(Object source, ElapsedEventArgs e)
+        {
+            time += 10;
+
+            double criticalTemperatureThreshold = GetCriticalTemperatureThreshold("Привод главного движения");
+
+            if (temperatureMainMotion > criticalTemperatureThreshold)
+            {
+                Invoke(() => UpdateGrid(msg: "Критическая температура", nameMachine: "Привод главного движения", typeError: Error.Info.ToString(), date: DateTime.Now.ToUniversalTime().ToString(), template: TemplateLogs.Message));
+            }
+            arrTime.Add(time);
+            arrTemperature.Add(temperatureMainMotion);
+            Invoke(() => UpdateTextBoxTemperature());
+        }
+
+        private void UpdateTextBoxTemperature()
+        {
+            textBoxCNC.Text = $"Темп СЧПУ: {temperatureCnc}";
+            textBoxMainMotion.Text = $"Темп привода: {temperatureMainMotion}";
+            textBoxSpindle.Text = $"Темп шпинделя: {temperatureSpindle}";
+        }
+
+        private void UpdateTextBoxReady(string text)
+        {
+            textBoxReadyCNC.Text = text;
+            textBoxReadySpindle.Text = text;
+        }
+
+        private void UpdateTextBoxAverage(double averageTemperature)
+        {
+            textBoxAverageMainMotion.Text = $"Ср. температура: {averageTemperature}";
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            dt = new DataTable();
+            dt.Columns.Add("Datetime");
+            dt.Columns.Add("MachineName");
+            dt.Columns.Add("Typerror");
+            dt.Columns.Add("Message");
+            dt.Columns.Add("IdMachine");
+
+            List<Logs> log = new List<Logs>();
+            foreach (Logs l in logs)
+            {
+                if (l.Name == "СЧПУ")
+                {
+                    dt!.Rows.Add(l.Date, l.Name, l.TypeError, l.Msg, l.Id_machine);
+                }
+
+            }
+
+            logsGrid.DataSource = dt;
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            dt = new DataTable();
+            dt.Columns.Add("Datetime");
+            dt.Columns.Add("MachineName");
+            dt.Columns.Add("Typerror");
+            dt.Columns.Add("Message");
+            dt.Columns.Add("IdMachine");
+
+            foreach (Logs l in logs)
+            {
+                if (l.Name == "Шпиндель")
+                {
+                    dt!.Rows.Add(l.Date, l.Name, l.TypeError, l.Msg, l.Id_machine);
+                }
+
+            }
+
+            logsGrid.DataSource = dt;
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            dt = new DataTable();
+            dt.Columns.Add("Datetime");
+            dt.Columns.Add("MachineName");
+            dt.Columns.Add("Typerror");
+            dt.Columns.Add("Message");
+            dt.Columns.Add("IdMachine");
+            foreach (Logs l in logs)
+            {
+                if (l.Name == "Привод главного движения")
+                {
+                    dt!.Rows.Add(l.Date, l.Name, l.TypeError, l.Msg, l.Id_machine);
+                }
+
+            }
+
+            logsGrid.DataSource = dt;
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            logsGrid.DataSource = logs;
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            _data.OpenConnection();
+            MessageBox.Show(_data.SendLog(logs));
+            _data.CloseConnection();
+            logsGrid.DataSource = null;
+            logsGrid.Rows.Clear();
+            
+            logs.Clear();
+        }
+    }
+}
