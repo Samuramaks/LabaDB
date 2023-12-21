@@ -22,7 +22,8 @@
  <li>Лабораторная работа 1 находится в папке DataBase</li>
  <li>Лабораторная работа 2. Макет в Figma</li>
   ![image](https://github.com/Samuramaks/LabaDB/assets/90257039/ebb74a4b-85c0-426c-af9c-10c331be79ee)
-
+ </ul>
+ <ul>
  <li>Лабораторная работа 3. Разработка приложения по макету из Figma на WinForms лежит в папке WinFormsApp</li>
  <li>Лабораторная работа 4. Разработка приложения по макету из Figma на WPF лежит в папке WpfApp</li>
 </ul>
